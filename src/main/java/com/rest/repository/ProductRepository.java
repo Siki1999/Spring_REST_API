@@ -1,0 +1,37 @@
+package com.rest.repository;
+
+import com.rest.entity.Product;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository interface for managing {@link Product} entities.
+ * <p>
+ * Provides CRUD operations and custom query methods for product data access.
+ * Spring Data JPA automatically implements this interface at runtime.
+ */
+public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+
+    /**
+     * Finds a product by its unique code
+     * @param code Product code to search for (case-sensitive)
+     * @return Optional containing found product, or empty if not found
+     */
+    Optional<Product> findByCode(String code);
+
+    /**
+     * Checks if a product exists with given code
+     * @param code Product code to check
+     * @return true if code exists in database
+     */
+    boolean existsByCode(String code);
+
+    /**
+     * Finds all available products (where isAvailable = true)
+     * @return List of available products
+     */
+    List<Product> findAllByIsAvailableTrue();
+}

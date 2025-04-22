@@ -1,0 +1,118 @@
+package com.rest.controller;
+
+import com.rest.dto.ProductDto;
+import com.rest.service.ProductService;
+import com.rest.web.response.ProductResponse;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.data.util.Pair;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class ProductControllerTest {
+    @Mock
+    private ProductService productService;
+
+    @InjectMocks
+    private ProductController productController;
+
+    private ProductDto validDto;
+    private ProductResponse successResponse;
+    private ProductResponse errorResponse;
+    private Pair<ProductResponse, Long> okPair;
+    private Pair<ProductResponse, Long> badPair;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        
+        validDto = new ProductDto(2,"123hdk738e", "Test Product", 99.99, 105.68, true);
+        successResponse = new ProductResponse();
+        successResponse.addProduct(validDto);
+        
+        errorResponse = new ProductResponse();
+        errorResponse.setErrors(Collections.singletonList("Validation error"));
+        okPair = Pair.of(successResponse, 0L);
+        badPair = Pair.of(errorResponse, 0L);
+    }
+
+    @Test
+    void testGetProductById_Success() {
+        when(productService.getProduct(1L)).thenReturn(successResponse);
+        
+        ResponseEntity<ProductResponse> response = productController.getProduct(1L);
+        
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getProducts());
+        verify(productService).getProduct(1L);
+    }
+
+    @Test
+    void testGetProductById_NotFound() {
+        when(productService.getProduct(999L)).thenReturn(errorResponse);
+        
+        ResponseEntity<ProductResponse> response = productController.getProduct(999L);
+        
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().getErrors().isEmpty());
+    }
+
+    @Test
+    void testCreateProduct_Success() {
+        when(productService.addProduct(validDto)).thenReturn(successResponse);
+        
+        ResponseEntity<ProductResponse> response = productController.addProduct(validDto);
+        
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getProducts());
+        verify(productService).addProduct(validDto);
+    }
+
+    @Test
+    void testCreateProduct_ValidationFailure() {
+        ProductDto invalidDto = new ProductDto(2,"123hdk738e", "", -10.0, 5.9, true);
+        when(productService.addProduct(invalidDto)).thenReturn(errorResponse);
+        
+        ResponseEntity<ProductResponse> response = productController.addProduct(invalidDto);
+        
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().getErrors().isEmpty());
+    }
+
+    @Test
+    void testGetAllProducts_Success() {
+        ProductDto dto2 = new ProductDto(2, "384jf84j", "Test Product 2", 149.99, 155.0, false);
+        successResponse.addProduct(dto2);
+        when(productService.getAllProducts(0, 10, null, null)).thenReturn(okPair);
+
+        ResponseEntity<ProductResponse> response = productController.getAllProducts(0, 10, null, null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(2, response.getBody().getProducts().size());
+    }
+
+    @Test
+    void testGetAllProducts_Empty() {
+        successResponse.setProducts(Collections.emptyList());
+        when(productService.getAllProducts(0, 10, null, null)).thenReturn(badPair);
+
+        ResponseEntity<ProductResponse> response = productController.getAllProducts(0, 10, null, null);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(0, response.getBody().getProducts().size());
+    }
+}
